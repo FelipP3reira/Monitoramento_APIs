@@ -9,6 +9,7 @@ import { lerCabecalhos } from '../dominio/repositorio-monitores.ts';
 import { gravarResultado } from '../dominio/repositorio-resultados.ts';
 import { atualizarIncidente } from '../dominio/servico-incidentes.ts';
 
+import { agregarHorasFechadas, aplicarRetencao } from './manutencao.ts';
 import { liberarMonitor, reservarMonitores, type MonitorReservado } from './reserva.ts';
 
 export interface OpcoesDoWorker {
@@ -16,12 +17,20 @@ export interface OpcoesDoWorker {
   lote?: number;
   leaseSegundos?: number;
   pausaSemTrabalhoMs?: number;
+  intervaloDeManutencaoMs?: number;
+  retencaoDias?: number;
   dependenciasDoCheck?: DependenciasDoExecutor;
   aoFalhar?: (monitorId: string, erro: Error) => void;
 }
 
+export interface SaldoDaManutencao {
+  horasAgregadas: number;
+  resultadosApagados: number;
+}
+
 export interface Worker {
   cicloUnico: () => Promise<number>;
+  manutencao: () => Promise<SaldoDaManutencao>;
   rodar: () => Promise<void>;
   parar: () => void;
 }
@@ -48,10 +57,13 @@ export function criarWorker({
   lote = config.LOTE_DO_WORKER,
   leaseSegundos = config.LEASE_SEGUNDOS,
   pausaSemTrabalhoMs = 1000,
+  intervaloDeManutencaoMs = 60_000,
+  retencaoDias = config.RETENCAO_DIAS,
   dependenciasDoCheck = {},
   aoFalhar,
 }: OpcoesDoWorker): Worker {
   let rodando = false;
+  let ultimaManutencao = 0;
 
   async function processar(monitor: MonitorReservado): Promise<void> {
     try {
@@ -84,10 +96,24 @@ export function criarWorker({
     return reservados.length;
   }
 
+  // A agregacao precisa vir antes da retencao: apagar o cru de uma hora que ainda
+  // nao virou agregado perderia o dado para sempre.
+  async function manutencao(): Promise<SaldoDaManutencao> {
+    const horasAgregadas = await agregarHorasFechadas(db);
+    const resultadosApagados = await aplicarRetencao(db, retencaoDias);
+
+    return { horasAgregadas, resultadosApagados };
+  }
+
   async function rodar(): Promise<void> {
     rodando = true;
 
     while (rodando) {
+      if (Date.now() - ultimaManutencao >= intervaloDeManutencaoMs) {
+        await manutencao();
+        ultimaManutencao = Date.now();
+      }
+
       const processados = await cicloUnico();
       // Sem trabalho, dorme; com trabalho, emenda o proximo ciclo para nao
       // acumular atraso quando ha mais monitores vencidos do que cabe no lote.
@@ -95,5 +121,5 @@ export function criarWorker({
     }
   }
 
-  return { cicloUnico, rodar, parar: () => (rodando = false) };
+  return { cicloUnico, manutencao, rodar, parar: () => (rodando = false) };
 }
