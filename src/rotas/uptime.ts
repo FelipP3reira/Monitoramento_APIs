@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import type { BancoDeDados } from '../db/conexao.ts';
 import { buscarMonitor } from '../dominio/repositorio-monitores.ts';
+import { montarPainel } from '../dominio/repositorio-painel.ts';
 import { resumoDeUptime, serieHoraria } from '../dominio/repositorio-uptime.ts';
 
 const MAXIMO_DE_HORAS = 90 * 24;
@@ -14,6 +15,8 @@ const esquemaDaJanela = z.object({
 
 export function rotasDeUptime(db: BancoDeDados): FastifyPluginCallback {
   return (app, _opcoes, pronto) => {
+    app.get('/painel', () => montarPainel(db));
+
     app.get('/monitores/:id/uptime', async (requisicao, resposta) => {
       const { id } = esquemaDoIdentificador.parse(requisicao.params);
       const { horas } = esquemaDaJanela.parse(requisicao.query);
