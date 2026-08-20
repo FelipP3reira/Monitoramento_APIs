@@ -7,6 +7,7 @@ import { config } from '../config.ts';
 import type { BancoDeDados } from '../db/conexao.ts';
 import { lerCabecalhos } from '../dominio/repositorio-monitores.ts';
 import { gravarResultado } from '../dominio/repositorio-resultados.ts';
+import { atualizarIncidente } from '../dominio/servico-incidentes.ts';
 
 import { liberarMonitor, reservarMonitores, type MonitorReservado } from './reserva.ts';
 
@@ -56,6 +57,15 @@ export function criarWorker({
     try {
       const resultado = await executarCheck(paraCheck(monitor), dependenciasDoCheck);
       await gravarResultado(db, monitor.id, resultado);
+      await atualizarIncidente(
+        db,
+        monitor.id,
+        {
+          falhasParaAbrir: monitor.falhas_para_abrir,
+          sucessosParaFechar: monitor.sucessos_para_fechar,
+        },
+        resultado,
+      );
     } catch (erro) {
       // Um monitor problematico nao pode derrubar o ciclo dos outros.
       aoFalhar?.(monitor.id, erro instanceof Error ? erro : new Error(String(erro)));
