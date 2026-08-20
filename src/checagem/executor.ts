@@ -11,6 +11,7 @@ import type { MetodoHttp, MotivoDeFalha } from '../db/tipos.ts';
 import type { Assertiva } from '../dominio/assertivas.ts';
 import {
   DestinoBloqueado,
+  NomeNaoResolvido,
   resolverEnderecoSeguro,
   validarUrlDeMonitor,
   type EnderecoResolvido,
@@ -351,6 +352,16 @@ export async function executarCheck(
         codigo_http: null,
         latencia_ms: latencia,
         motivo_falha: 'bloqueado',
+        detalhe: erro.message,
+      };
+    }
+
+    if (erro instanceof NomeNaoResolvido) {
+      return {
+        sucesso: false,
+        codigo_http: null,
+        latencia_ms: latencia,
+        motivo_falha: 'conexao',
         detalhe: erro.message,
       };
     }

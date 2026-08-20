@@ -92,6 +92,18 @@ export function validarUrlDeMonitor(bruta: string): URL {
   return url;
 }
 
+/**
+ * Separada de DestinoBloqueado de proposito: "o nome nao existe" e um problema do
+ * alvo, e chamar isso de bloqueio faria o operador procurar erro na guarda de
+ * rede quando o que tem e um host errado no cadastro.
+ */
+export class NomeNaoResolvido extends Error {
+  constructor(motivo: string) {
+    super(motivo);
+    this.name = 'NomeNaoResolvido';
+  }
+}
+
 export interface EnderecoResolvido {
   endereco: string;
   familia: 4 | 6;
@@ -116,7 +128,7 @@ export async function resolverEnderecoSeguro(anfitriao: string): Promise<Enderec
   try {
     encontrados = await lookup(semColchetes, { all: true });
   } catch {
-    throw new DestinoBloqueado(`Nao consegui resolver o nome ${semColchetes}.`);
+    throw new NomeNaoResolvido(`nao consegui resolver o nome ${semColchetes}`);
   }
 
   // Basta um endereco interno na resposta para recusar: aceitar o primeiro publico
@@ -128,7 +140,7 @@ export async function resolverEnderecoSeguro(anfitriao: string): Promise<Enderec
 
   const primeiro = encontrados[0];
   if (primeiro === undefined) {
-    throw new DestinoBloqueado(`O nome ${semColchetes} nao resolveu para nenhum endereco.`);
+    throw new NomeNaoResolvido(`o nome ${semColchetes} nao resolveu para nenhum endereco`);
   }
 
   return { endereco: primeiro.address, familia: primeiro.family === 4 ? 4 : 6 };
