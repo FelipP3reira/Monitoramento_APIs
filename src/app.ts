@@ -1,5 +1,9 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+
 import helmet from '@fastify/helmet';
 import limitadorDeTaxa from '@fastify/rate-limit';
+import arquivosEstaticos from '@fastify/static';
 import Fastify, { type FastifyError, type FastifyInstance } from 'fastify';
 import { ZodError } from 'zod';
 
@@ -77,6 +81,13 @@ export async function montarApp({
     },
     { prefix: '/api' },
   );
+
+  // O painel so e servido se tiver sido construido; em desenvolvimento ele roda
+  // no Vite, com proxy para esta mesma API.
+  const pastaDoPainel = join(import.meta.dirname, '..', 'web', 'dist');
+  if (existsSync(join(pastaDoPainel, 'index.html'))) {
+    await app.register(arquivosEstaticos, { root: pastaDoPainel });
+  }
 
   return app;
 }

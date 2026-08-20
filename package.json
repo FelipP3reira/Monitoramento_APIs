@@ -9,9 +9,11 @@
   "scripts": {
     "dev": "node --experimental-transform-types --disable-warning=ExperimentalWarning --env-file=.env --watch src/principal.ts",
     "worker": "node --experimental-transform-types --disable-warning=ExperimentalWarning --env-file=.env src/agendador/principal.ts",
+    "painel": "npm --prefix web run dev",
+    "painel:build": "npm --prefix web run build",
     "migrar": "node --experimental-transform-types --disable-warning=ExperimentalWarning --env-file=.env src/db/migrar.ts",
-    "tipos": "tsc --noEmit",
-    "lint": "eslint .",
+    "tipos": "tsc --noEmit && npm --prefix web run tipos",
+    "lint": "eslint . && npm --prefix web run lint",
     "formatar": "prettier --write .",
     "formato": "prettier --check .",
     "test": "vitest run"
