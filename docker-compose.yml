@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: monitoramento-postgres
+    environment:
+      POSTGRES_USER: monitoramento
+      POSTGRES_PASSWORD: monitoramento
+      POSTGRES_DB: monitoramento
+    ports:
+      - '5441:5432'
+    volumes:
+      - dados-postgres:/var/lib/postgresql/data
+      - ./docker/criar-banco-de-teste.sh:/docker-entrypoint-initdb.d/criar-banco-de-teste.sh:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U monitoramento -d monitoramento']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  dados-postgres:
