@@ -18,3 +18,18 @@ export async function gravarResultado(
     })
     .execute();
 }
+
+export async function ultimosResultados(
+  db: BancoDeDados,
+  monitorId: string,
+  limite: number,
+): Promise<{ sucesso: boolean }[]> {
+  return db
+    .selectFrom('resultados')
+    .select('sucesso')
+    .where('monitor_id', '=', monitorId)
+    .orderBy('verificado_em', 'desc')
+    .orderBy('id', 'desc')
+    .limit(limite)
+    .execute();
+}
