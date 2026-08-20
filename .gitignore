@@ -1,0 +1,6 @@
+node_modules/
+.env
+*.log
+web/dist/
+demo.ts
+saida-demo-*.txt
