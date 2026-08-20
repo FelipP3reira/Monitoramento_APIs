@@ -4,3 +4,4 @@ node_modules/
 web/dist/
 demo.ts
 saida-demo-*.txt
+verificacao.ts

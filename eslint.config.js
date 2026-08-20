@@ -3,7 +3,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['node_modules/**', 'web/**', 'demo.ts'],
+    ignores: ['node_modules/**', 'web/**', 'demo.ts', 'verificacao.ts'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
