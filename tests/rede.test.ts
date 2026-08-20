@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DestinoBloqueado,
   ehEnderecoInterno,
+  NomeNaoResolvido,
   resolverEnderecoSeguro,
   validarUrlDeMonitor,
 } from '../src/seguranca/rede.ts';
@@ -97,9 +98,10 @@ describe('resolucao do destino', () => {
     });
   });
 
-  it('recusa nome que nao existe', async () => {
-    await expect(
-      resolverEnderecoSeguro('nome-que-nao-existe-em-lugar-nenhum.invalid'),
-    ).rejects.toThrow(/resolver o nome/i);
+  it('separa nome inexistente de destino bloqueado', async () => {
+    const tentativa = resolverEnderecoSeguro('nome-que-nao-existe-em-lugar-nenhum.invalid');
+
+    await expect(tentativa).rejects.toThrow(NomeNaoResolvido);
+    await expect(tentativa).rejects.not.toThrow(DestinoBloqueado);
   });
 });
