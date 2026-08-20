@@ -5,6 +5,7 @@ import { ZodError } from 'zod';
 
 import { config } from './config.ts';
 import type { BancoDeDados } from './db/conexao.ts';
+import { rotasDeIncidentes } from './rotas/incidentes.ts';
 import { rotasDeMonitores } from './rotas/monitores.ts';
 import { exigirToken } from './seguranca/autenticacao.ts';
 import { DestinoBloqueado } from './seguranca/rede.ts';
@@ -68,6 +69,7 @@ export async function montarApp({
     async (rotasProtegidas) => {
       rotasProtegidas.addHook('onRequest', exigirToken);
       await rotasProtegidas.register(rotasDeMonitores(db, limiteDeEscrita));
+      await rotasProtegidas.register(rotasDeIncidentes(db));
     },
     { prefix: '/api' },
   );
