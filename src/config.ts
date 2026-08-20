@@ -4,6 +4,7 @@ const esquemaDoAmbiente = z.object({
   DATABASE_URL: z.string().url(),
   PORTA: z.coerce.number().int().positive().default(3011),
   AMBIENTE: z.enum(['desenvolvimento', 'teste', 'producao']).default('desenvolvimento'),
+  API_TOKEN: z.string().min(24, 'API_TOKEN precisa de pelo menos 24 caracteres'),
   CHAVE_CIFRA: z
     .string()
     .regex(/^[0-9a-fA-F]{64}$/, 'CHAVE_CIFRA precisa ser 64 caracteres hexadecimais (32 bytes)'),

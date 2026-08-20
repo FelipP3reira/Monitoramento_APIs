@@ -7,6 +7,7 @@ export default defineConfig({
     env: {
       DATABASE_URL: 'postgres://monitoramento:monitoramento@localhost:5441/monitoramento_teste',
       AMBIENTE: 'teste',
+      API_TOKEN: 'token-de-teste-com-tamanho-suficiente',
       CHAVE_CIFRA: '0'.repeat(64),
       PORTA: '3011',
     },
