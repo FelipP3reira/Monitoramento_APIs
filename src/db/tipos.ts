@@ -82,6 +82,7 @@ export interface TabelaAlertasEnviados {
   ultimo_erro: string | null;
   criado_em: CriadoPeloBanco;
   enviado_em: ColumnType<Date | null, Date | string | null, Date | string | null>;
+  proxima_tentativa_em: ColumnType<Date, Date | string | undefined, Date | string>;
 }
 
 export interface Banco {
