@@ -5,6 +5,7 @@ import { ZodError } from 'zod';
 
 import { config } from './config.ts';
 import type { BancoDeDados } from './db/conexao.ts';
+import { rotasDeCanais } from './rotas/canais.ts';
 import { rotasDeIncidentes } from './rotas/incidentes.ts';
 import { rotasDeMonitores } from './rotas/monitores.ts';
 import { rotasDeUptime } from './rotas/uptime.ts';
@@ -72,6 +73,7 @@ export async function montarApp({
       await rotasProtegidas.register(rotasDeMonitores(db, limiteDeEscrita));
       await rotasProtegidas.register(rotasDeIncidentes(db));
       await rotasProtegidas.register(rotasDeUptime(db));
+      await rotasProtegidas.register(rotasDeCanais(db, limiteDeEscrita));
     },
     { prefix: '/api' },
   );

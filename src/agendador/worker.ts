@@ -1,4 +1,10 @@
 import {
+  entregarPendentes,
+  enfileirarAlertas,
+  type SaldoDaEntrega,
+} from '../alertas/despachante.ts';
+import { registroPadrao, type RegistroDeCanais } from '../alertas/registro.ts';
+import {
   executarCheck,
   type DependenciasDoExecutor,
   type MonitorParaCheck,
@@ -19,6 +25,8 @@ export interface OpcoesDoWorker {
   pausaSemTrabalhoMs?: number;
   intervaloDeManutencaoMs?: number;
   retencaoDias?: number;
+  loteDeAlertas?: number;
+  registroDeCanais?: RegistroDeCanais;
   dependenciasDoCheck?: DependenciasDoExecutor;
   aoFalhar?: (monitorId: string, erro: Error) => void;
 }
@@ -30,6 +38,7 @@ export interface SaldoDaManutencao {
 
 export interface Worker {
   cicloUnico: () => Promise<number>;
+  entregarAlertas: () => Promise<SaldoDaEntrega>;
   manutencao: () => Promise<SaldoDaManutencao>;
   rodar: () => Promise<void>;
   parar: () => void;
@@ -59,9 +68,12 @@ export function criarWorker({
   pausaSemTrabalhoMs = 1000,
   intervaloDeManutencaoMs = 60_000,
   retencaoDias = config.RETENCAO_DIAS,
+  loteDeAlertas = 20,
+  registroDeCanais,
   dependenciasDoCheck = {},
   aoFalhar,
 }: OpcoesDoWorker): Worker {
+  const canais = registroDeCanais ?? registroPadrao();
   let rodando = false;
   let ultimaManutencao = 0;
 
@@ -69,7 +81,7 @@ export function criarWorker({
     try {
       const resultado = await executarCheck(paraCheck(monitor), dependenciasDoCheck);
       await gravarResultado(db, monitor.id, resultado);
-      await atualizarIncidente(
+      const decisao = await atualizarIncidente(
         db,
         monitor.id,
         {
@@ -78,6 +90,17 @@ export function criarWorker({
         },
         resultado,
       );
+
+      // So a borda do incidente enfileira aviso; falha repetida enquanto o alvo
+      // esta fora nao gera nada novo.
+      if (decisao.acao !== 'nada' && decisao.incidenteId !== undefined) {
+        await enfileirarAlertas(
+          db,
+          monitor.id,
+          decisao.incidenteId,
+          decisao.acao === 'abrir' ? 'abriu' : 'fechou',
+        );
+      }
     } catch (erro) {
       // Um monitor problematico nao pode derrubar o ciclo dos outros.
       aoFalhar?.(monitor.id, erro instanceof Error ? erro : new Error(String(erro)));
@@ -94,6 +117,10 @@ export function criarWorker({
     // conexoes simultaneas do que o pool do banco aguenta devolver.
     await Promise.all(reservados.map(processar));
     return reservados.length;
+  }
+
+  function entregarAlertas(): Promise<SaldoDaEntrega> {
+    return entregarPendentes(db, canais, loteDeAlertas);
   }
 
   // A agregacao precisa vir antes da retencao: apagar o cru de uma hora que ainda
@@ -115,11 +142,12 @@ export function criarWorker({
       }
 
       const processados = await cicloUnico();
+      await entregarAlertas();
       // Sem trabalho, dorme; com trabalho, emenda o proximo ciclo para nao
       // acumular atraso quando ha mais monitores vencidos do que cabe no lote.
       if (processados === 0) await esperar(pausaSemTrabalhoMs);
     }
   }
 
-  return { cicloUnico, manutencao, rodar, parar: () => (rodando = false) };
+  return { cicloUnico, entregarAlertas, manutencao, rodar, parar: () => (rodando = false) };
 }
